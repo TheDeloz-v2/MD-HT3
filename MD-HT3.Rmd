@@ -41,4 +41,22 @@ tabla_variables <- data.frame(Variable = variables,
 print(tabla_variables)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r train}
+
+# Campos donde se mide por calificaciones:
+#       Ex	Excellent
+#       Gd	Good
+#       TA	Typical/Average
+#       Fa	Fair
+#       Po	Poor
+#       NA	No
+
+columnas_calificaciones <- c("Id", "ExterQual", "ExterCond", "BsmtQual", "BsmtCond", "HeatingQC", "KitchenQual", "FireplaceQu", "GarageQual", "GarageCond", "PoolQC")
+
+datos_procesados_calificaciones <- datos[, columnas_calificaciones]
+
+print(datos_procesados_calificaciones)
+
+```
