@@ -9,19 +9,12 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+## Análisis exploratorio 
 
 ```{r train}
 datos  <- read.csv("train.csv")
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
 
 ```{r }
 datos  <- read.csv("train.csv")
@@ -52,10 +45,66 @@ print(tabla_variables)
 #       Po	Poor
 #       NA	No
 
-columnas_calificaciones <- c("Id", "ExterQual", "ExterCond", "BsmtQual", "BsmtCond", "HeatingQC", "KitchenQual", "FireplaceQu", "GarageQual", "GarageCond", "PoolQC")
+columnas_calificaciones <- c("Id", "ExterQual", "ExterCond", "BsmtQual", "BsmtCond", "Foundation", "BsmtExposure", "Heating", "HeatingQC", "KitchenQual", "FireplaceQu", "GarageQual", "GarageCond", "PoolQC")
 
 datos_procesados_calificaciones <- datos[, columnas_calificaciones]
 
 print(datos_procesados_calificaciones)
 
+
+```
+
+``` {r mapping}
+
+# Definimos los mapeos como listas
+exterCondMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
+foundationMap <- list("BrkTil" = 6, "CBlock" = 5, "PConc" = 4, "Slab" = 3, "Stone" = 2, "Wood" = 1)
+bsmtQualMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
+bsmtCondMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
+bsmtExposureMap <- list("Gd" = 4, "Av" = 3, "Mn" = 2, "No" = 1, "NA" = 0)
+bsmtFinType1Map <- list("GLQ" = 6, "ALQ" = 5, "BLQ" = 4, "Rec" = 3, "LwQ" = 2, "Unf" = 1, "NA" = 0)
+bsmtFinType2Map <- list("GLQ" = 6, "ALQ" = 5, "BLQ" = 4, "Rec" = 3, "LwQ" = 2, "Unf" = 1, "NA" = 0)
+heatingMap <- list("Floor" = 6, "GasA" = 5, "GasW" = 4, "Grav" = 3, "OthW" = 2, "Wall" = 1)
+heatingQCMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
+centralAirMap <- list("N" = 0, "Y" = 1)
+electricalMap <- list("SBrkr" = 5, "FuseA" = 4, "FuseF" = 3, "FuseP" = 2, "Mix" = 1, "NA" = 0)
+poolQCMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "NA" = 0)
+kitchenQualMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
+FireplaceQuMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
+GarageQualMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
+GarageCondMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
+PoolQCMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
+
+# Función para aplicar el mapeo
+applyMap <- function(column, map) {
+  sapply(column, function(x) {
+    if(is.na(x) || !x %in% names(map)) {
+      return(NA)  # Devuelve NA si el valor es NA o no está en el mapa
+    } else {
+      return(map[[x]])
+    }
+  })
+}
+
+# Aplicamos los mapeos a las columnas correspondientes
+datos$ExterQual <-  applyMap(datos$ExterQual, exterCondMap)
+datos$ExterCond <- applyMap(datos$ExterCond, exterCondMap)
+datos$BsmtQual <- applyMap(datos$BsmtQual, bsmtQualMap)
+datos$BsmtCond <- applyMap(datos$BsmtCond, bsmtCondMap)
+datos$Foundation <- applyMap(datos$Foundation, foundationMap)
+datos$BsmtExposure <- applyMap(datos$BsmtExposure, bsmtExposureMap)
+datos$BsmtFinType1 <- applyMap(datos$BsmtFinType1, bsmtFinType1Map)
+datos$BsmtFinType2 <- applyMap(datos$BsmtFinType2, bsmtFinType2Map)
+datos$Heating <- applyMap(datos$Heating, heatingMap)
+datos$HeatingQC <- applyMap(datos$HeatingQC, heatingQCMap)
+datos$CentralAir <- applyMap(datos$CentralAir, centralAirMap)
+datos$Electrical <- applyMap(datos$Electrical, electricalMap)
+datos$PoolQC <- applyMap(datos$PoolQC, poolQCMap)
+datos$KitchenQual <- applyMap(datos$KitchenQual, kitchenQualMap)
+datos$FireplaceQu <- applyMap(datos$FireplaceQu, FireplaceQuMap)
+datos$GarageQual <- applyMap(datos$GarageQual, GarageQualMap)
+datos$GarageCond <- applyMap(datos$GarageCond, GarageCondMap)
+datos$PoolQC <- applyMap(datos$PoolQC, PoolQCMap)
+
+print(datos)
 ```
