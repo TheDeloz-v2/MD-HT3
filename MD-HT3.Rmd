@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Análisis exploratorio 
 
 ```{r train}
+library(dplyr)
 datos  <- read.csv("train.csv")
 ```
 
@@ -45,7 +46,7 @@ print(tabla_variables)
 #       Po	Poor
 #       NA	No
 
-columnas_calificaciones <- c("Id", "ExterQual", "ExterCond", "BsmtQual", "BsmtCond", "Foundation", "BsmtExposure", "Heating", "HeatingQC", "KitchenQual", "FireplaceQu", "GarageQual", "GarageCond", "PoolQC")
+columnas_calificaciones <- c("Id", "ExterQual", "ExterCond", "Foundation", "BsmtQual", "BsmtCond", "HeatingQC", "KitchenQual", "FireplaceQu", "GarageQual", "GarageCond", "PoolQC")
 
 datos_procesados_calificaciones <- datos[, columnas_calificaciones]
 
@@ -54,57 +55,125 @@ print(datos_procesados_calificaciones)
 
 ```
 
-``` {r mapping}
+``` {r mapeo}
+datos <- datos %>%
+  mutate(ExterCond = case_when(
+    ExterCond == "Ex" ~ 5,
+    ExterCond == "Gd" ~ 4,
+    ExterCond == "TA" ~ 3,
+    ExterCond == "Fa" ~ 2,
+    ExterCond == "Po" ~ 1,
+    TRUE ~ 0
+  )) %>%
+    mutate(ExterQual = case_when(
+    ExterQual == "Ex" ~ 5,
+    ExterQual == "Gd" ~ 4,
+    ExterQual == "TA" ~ 3,
+    ExterQual == "Fa" ~ 2,
+    ExterQual == "Po" ~ 1,
+    TRUE ~ 0
+  )) %>%
+  mutate(Foundation = case_when(
+    Foundation == "BrkTil" ~ 6,
+    Foundation == "CBlock" ~ 5,
+    Foundation == "PConc" ~ 4,
+    Foundation == "Slab" ~ 3,
+    Foundation == "Stone" ~ 2,
+    Foundation == "Wood" ~ 1,
+    TRUE ~ NA_real_
+  )) %>%
+  mutate(BsmtQual = case_when(
+    BsmtQual == "Ex" ~ 5,
+    BsmtQual == "Gd" ~ 4,
+    BsmtQual == "TA" ~ 3,
+    BsmtQual == "Fa" ~ 2,
+    BsmtQual == "Po" ~ 1,
+    TRUE ~ 0
+  ))%>%
+  mutate(BsmtCond = case_when(
+    BsmtCond == "Ex" ~ 5,
+    BsmtCond == "Gd" ~ 4,
+    BsmtCond == "TA" ~ 3,
+    BsmtCond == "Fa" ~ 2,
+    BsmtCond == "Po" ~ 1,
+    TRUE ~ 0
+  ))%>%
+    mutate(BsmtExposure = case_when(
+    BsmtExposure == "Ex" ~ 5,
+    BsmtExposure == "Gd" ~ 4,
+    BsmtExposure == "TA" ~ 3,
+    BsmtExposure == "Fa" ~ 2,
+    BsmtExposure == "Po" ~ 1,
+    TRUE ~ 0
+  ))%>%
+    mutate(Heating = case_when(
+    Heating == "Floor" ~ 6,
+    Heating == "GasA" ~ 5,
+    Heating == "GasW" ~ 4,
+    Heating == "Grav" ~ 3,
+    Heating == "OthW" ~ 2,
+    Heating == "Wall" ~ 1,
+    TRUE ~ 0
+  ))%>%
+   mutate(CentralAir = case_when(
+    CentralAir == "Y" ~ 1,
+    TRUE ~ 0
+  ))%>%
+   mutate(Heating = case_when(
+    Heating == "Floor" ~ 6,
+    Heating == "GasA" ~ 5,
+    Heating == "GasW" ~ 4,
+    Heating == "Grav" ~ 3,
+    Heating == "OthW" ~ 2,
+    Heating == "Wall" ~ 1,
+    TRUE ~ 0
+  ))%>%
+  mutate(Electrical = case_when(
+    Electrical == "SBrkr" ~ 5,
+    Electrical == "FuseA" ~ 4,
+    Electrical == "FuseF" ~ 3,
+    Electrical == "FuseP" ~ 2,
+    Electrical == "Mix" ~ 1,
+    TRUE ~ 0
+  ))%>%
+  mutate(KitchenQual = case_when(
+    KitchenQual == "Ex" ~ 5,
+    KitchenQual == "Gd" ~ 4,
+    KitchenQual == "TA" ~ 3,
+    KitchenQual == "Fa" ~ 2,
+    KitchenQual == "Po" ~ 1,
+    TRUE ~ 0
+  ))%>%
+  mutate(FireplaceQu = case_when(
+    FireplaceQu == "Ex" ~ 5,
+    FireplaceQu == "Gd" ~ 4,
+    FireplaceQu == "TA" ~ 3,
+    FireplaceQu == "Fa" ~ 2,
+    FireplaceQu == "Po" ~ 1,
+    TRUE ~ 0
+  ))%>%
+  mutate(GarageQual = case_when(
+    GarageQual == "Ex" ~ 5,
+    GarageQual == "Gd" ~ 4,
+    GarageQual == "TA" ~ 3,
+    GarageQual == "Fa" ~ 2,
+    GarageQual == "Po" ~ 1,
+    TRUE ~ 0
+  ))%>%
+  mutate(GarageCond = case_when(
+    GarageCond == "Ex" ~ 5,
+    GarageCond == "TA" ~ 3,
+    GarageCond == "Fa" ~ 2,
+    GarageCond == "Po" ~ 1,
+    TRUE ~ 0
+  ))%>%
+  mutate(PoolQC = case_when(
+    PoolQC == "Ex" ~ 5,
+    PoolQC == "Gd" ~ 4,
+    PoolQC == "TA" ~ 3,
+    PoolQC == "Fa" ~ 2,
+    PoolQC == "Po" ~ 1,
+    TRUE ~ 0
+  ))
 
-# Definimos los mapeos como listas
-exterCondMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
-foundationMap <- list("BrkTil" = 6, "CBlock" = 5, "PConc" = 4, "Slab" = 3, "Stone" = 2, "Wood" = 1)
-bsmtQualMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
-bsmtCondMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
-bsmtExposureMap <- list("Gd" = 4, "Av" = 3, "Mn" = 2, "No" = 1, "NA" = 0)
-bsmtFinType1Map <- list("GLQ" = 6, "ALQ" = 5, "BLQ" = 4, "Rec" = 3, "LwQ" = 2, "Unf" = 1, "NA" = 0)
-bsmtFinType2Map <- list("GLQ" = 6, "ALQ" = 5, "BLQ" = 4, "Rec" = 3, "LwQ" = 2, "Unf" = 1, "NA" = 0)
-heatingMap <- list("Floor" = 6, "GasA" = 5, "GasW" = 4, "Grav" = 3, "OthW" = 2, "Wall" = 1)
-heatingQCMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
-centralAirMap <- list("N" = 0, "Y" = 1)
-electricalMap <- list("SBrkr" = 5, "FuseA" = 4, "FuseF" = 3, "FuseP" = 2, "Mix" = 1, "NA" = 0)
-poolQCMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "NA" = 0)
-kitchenQualMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
-FireplaceQuMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
-GarageQualMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
-GarageCondMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
-PoolQCMap <- list("Ex" = 5, "Gd" = 4, "TA" = 3, "Fa" = 2, "Po" = 1, "NA" = 0)
-
-# Función para aplicar el mapeo
-applyMap <- function(column, map) {
-  sapply(column, function(x) {
-    if(is.na(x) || !x %in% names(map)) {
-      return(NA)  # Devuelve NA si el valor es NA o no está en el mapa
-    } else {
-      return(map[[x]])
-    }
-  })
-}
-
-# Aplicamos los mapeos a las columnas correspondientes
-datos$ExterQual <-  applyMap(datos$ExterQual, exterCondMap)
-datos$ExterCond <- applyMap(datos$ExterCond, exterCondMap)
-datos$BsmtQual <- applyMap(datos$BsmtQual, bsmtQualMap)
-datos$BsmtCond <- applyMap(datos$BsmtCond, bsmtCondMap)
-datos$Foundation <- applyMap(datos$Foundation, foundationMap)
-datos$BsmtExposure <- applyMap(datos$BsmtExposure, bsmtExposureMap)
-datos$BsmtFinType1 <- applyMap(datos$BsmtFinType1, bsmtFinType1Map)
-datos$BsmtFinType2 <- applyMap(datos$BsmtFinType2, bsmtFinType2Map)
-datos$Heating <- applyMap(datos$Heating, heatingMap)
-datos$HeatingQC <- applyMap(datos$HeatingQC, heatingQCMap)
-datos$CentralAir <- applyMap(datos$CentralAir, centralAirMap)
-datos$Electrical <- applyMap(datos$Electrical, electricalMap)
-datos$PoolQC <- applyMap(datos$PoolQC, poolQCMap)
-datos$KitchenQual <- applyMap(datos$KitchenQual, kitchenQualMap)
-datos$FireplaceQu <- applyMap(datos$FireplaceQu, FireplaceQuMap)
-datos$GarageQual <- applyMap(datos$GarageQual, GarageQualMap)
-datos$GarageCond <- applyMap(datos$GarageCond, GarageCondMap)
-datos$PoolQC <- applyMap(datos$PoolQC, PoolQCMap)
-
-print(datos)
 ```
