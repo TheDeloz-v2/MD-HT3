@@ -546,3 +546,122 @@ qqline(residuos_filtrados, col = "red")
 El coeficiente de determinación r^2 de 0.666 indica que el modelo puede explicar aproximadamente el 66.6% de la variabilidad en los datos, lo cual es un rendimiento razonablemente bueno. Sin embargo, una tercera parte de la variabilidad no está siendo capturada por el modelo.
 
 El valor de la prueba de Shapiro-Wilk sugieren fuertemente que los residuos del modelo no siguen una distribución normal. Esta desviación de la normalidad, especialmente con un valor W relativamente bajo, indica que puede haber problemas con la especificación del modelo, como la omisión de variables importantes, o la presencia de valores atípicos que podrían estar distorsionando la distribución de los residuos.
+
+
+
+
+## Modelo de Ridge
+
+```{r modelo ridge}
+
+library(Metrics)
+library(glmnet)
+library(caTools)  # Para dividir los datos
+library(ggplot2)
+library(ggpubr)
+
+# Preparación de los datos
+y <- datos$SalePrice
+X <- scale(mejores_Datos)
+
+# Convertir la matriz escalada de nuevo a un dataframe
+X_df <- as.data.frame(X)
+
+# Dividir los datos en conjuntos de entrenamiento y prueba
+set.seed(42)  # Para reproducibilidad
+split <- sample.split(y, SplitRatio = 0.8)
+X_train <- X_df[split, ]
+X_test <- X_df[!split, ]
+y_train <- y[split]
+y_test <- y[!split]
+
+# Ajuste del modelo Ridge con validación cruzada
+x <- as.matrix(X_train)  # Convertir a matriz
+y <- y_train
+cv_ridge_model <- cv.glmnet(x, y, alpha=0)
+
+# Lambda óptimo basado en la validación cruzada
+lambda_optimo <- cv_ridge_model$lambda.min
+
+# Predicciones con lambda óptimo
+x_test <- as.matrix(X_test)  # Convertir a matriz
+y_pred_ridge <- predict(cv_ridge_model, s=lambda_optimo, newx=x_test)
+
+# Evaluación
+explained_variance_ridge <- 1 - var(y_test - y_pred_ridge) / var(y_test)
+mse_ridge <- mse(y_test, y_pred_ridge)
+
+# Calcula manualmente el R^2
+ss_res <- sum((y_test - y_pred_ridge)^2)  # Suma de cuadrados de los residuos
+ss_tot <- sum((y_test - mean(y_test))^2)  # Suma total de cuadrados
+r2_ridge <- 1 - (ss_res / ss_tot)
+
+mae_ridge <- mae(y_test, y_pred_ridge)
+
+# Imprimir métricas de evaluación
+cat("Lambda óptimo:", lambda_optimo, "\n")
+cat("Explained Variance:", explained_variance_ridge, "\n")
+cat("Mean Squared Error:", mse_ridge, "\n")
+cat("R2:", r2_ridge, "\n")
+cat("Mean Absolute Error:", mae_ridge, "\n")
+
+```
+
+```{r modelo ridge residuales}
+# Análisis de Residuales
+residuals_ridge <- y_test - y_pred_ridge
+
+# Residuales vs Predicciones
+ggplot() +
+  geom_point(aes(x=y_pred_ridge, y=residuals_ridge), color='coral') +
+  geom_hline(yintercept=0, color='blue') +
+  ggtitle('Residuales vs Predicciones') +
+  xlab('Predicciones') +
+  ylab('Residuales')
+
+```
+
+```{r modelo ridge residuales 2}
+
+# Distribución de Residuales
+ggplot() +
+  geom_histogram(aes(x=residuals_ridge), bins=30, fill='skyblue', color='black') +
+  geom_density(aes(x=residuals_ridge, y=..density..), color='blue') +
+  ggtitle('Distribución de Residuales') +
+  xlab('Residuales') +
+  ylab('Frecuencia')
+
+```
+
+
+
+```{r modelo ridge residuales 3}
+# Residuales vs Valores Reales
+ggplot() +
+  geom_point(aes(x=y_test, y=residuals_ridge), color='coral') +
+  ggtitle('Residuales vs Valores Reales') +
+  xlab('Valores Reales') +
+  ylab('Residuales')
+
+```
+
+```{r modelo ridge residuales 4}
+
+library(ggplot2)
+
+# Asegurarse de que los residuales están en el formato correcto
+residuals_ridge <- as.numeric(y_test - y_pred_ridge)
+
+# Crear un dataframe para los residuales
+residuals_df <- data.frame(residuals = residuals_ridge)
+
+# QQ Plot utilizando ggplot2
+ggplot(residuals_df, aes(sample = residuals)) +
+  stat_qq() +
+  stat_qq_line(color = "steelblue") +
+  ggtitle("QQ Plot de Residuales") +
+  xlab("Cuantiles Teóricos") +
+  ylab("Cuantiles de Residuales")
+
+
+```
