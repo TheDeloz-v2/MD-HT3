@@ -381,15 +381,10 @@ cat("BIC:", bic, "\n")
 ##Análisis residual
 
 ```{r analisisResiduales}
-# Calcular los residuos
-residuos <- y_test - y_pred
-# Gráfico de residuos vs. valores ajustados
-plot(y_pred, residuos,
-     xlab = "Valores Ajustados", ylab = "Residuos",
-     main = "Gráfico de Residuos vs. Valores Ajustados")
+# Gráfico de dispersión de residuos
+plot(residuos, type = "p", main = "Gráfico de Dispersión de Residuos",
+     xlab = "Índice de Observación", ylab = "Residuos")
 abline(h = 0, col = "red")  # Línea horizontal en 0 para referencia
-
-
 ```
 ```{r historesiduos}
 # Histograma de los residuos
@@ -415,14 +410,6 @@ legend("topright", legend = c("Densidad Normal", "Residuos"),
 
 ```
 
-```{r dispersion}
-# Gráfico de dispersión de residuos
-plot(residuos, type = "p", main = "Gráfico de Dispersión de Residuos",
-     xlab = "Índice de Observación", ylab = "Residuos")
-abline(h = 0, col = "red")  # Línea horizontal en 0 para referencia
-
-```
-
 
 ```{r qqgrafico}
 # Gráfico Q-Q de los residuos
@@ -442,3 +429,120 @@ shapiro.test(residuos)
 ```
 
 Las distintas graficas nos muestran que los residuos siguen una distribucion normal pero al poseer un valor W bajo y un valor p extremadamente bajo sugiere que los residuos de tu modelo no se distribuyen normalmente. Esto puede ser un indicativo de varios problemas potenciales con el modelo y que poseemos algunos valores atípicos distorcionando así la distribución de los residuos
+
+### Modelo Lasso
+```{r LassoModelLibrarys}
+install.packages("glmnet")
+install.packages("Metrics")
+library(glmnet)
+library(Metrics)
+```
+
+```{r ModelLasso}
+# Ajustar el modelo LASSO con validación cruzada
+set.seed(42)  # Para reproducibilidad
+cv_lasso <- cv.glmnet(x = X, y = y, alpha = 1, family = "gaussian")
+
+# Ver el valor lambda que minimiza el error de validación cruzada
+best_lambda <- cv_lasso$lambda.min
+print(best_lambda)
+
+# Crear el modelo LASSO usando el mejor lambda
+lasso_model <- glmnet(x = X, y = y, alpha = 1, lambda = best_lambda, family = "gaussian")
+
+# Ver los coeficientes del modelo
+coef(lasso_model)
+```
+Los que poseen valores nulos no contribuyen en nada a la variable dependiente para poder predecirla por lo que FullBath y TotRmsAbvGrd  no son relevantes para el modelo en el contexto de las otras variables. La variable que mejor predice el valor de SalePrice es la OverallQuallya que posee el coeficiente con mayor valor.
+
+```{r LassoModelComp}
+
+explained_variance_lasso <- cor(y_test, y_pred_lasso)^2
+
+# Asegurarse de que no haya valores negativos
+if(any(y_test <= 0) | any(y_pred_lasso <= 0)){
+  stop("MSLE no puede ser calculado para valores negativos o cero.")
+}
+
+mean_squared_log_error_lasso <- mean((log(y_pred_lasso + 1) - log(y_test + 1))^2)
+
+# Realizar predicciones con el modelo LASSO
+y_pred_lasso <- predict(lasso_model, newx = as.matrix(X_test), s = best_lambda, type = "response")
+
+# Calcular el R2
+r2_lasso <- cor(y_test, y_pred_lasso)^2
+
+# Calcular el Mean Squared Error (MSE)
+mse_lasso <- mse(y_test, y_pred_lasso)
+
+# Calcular el Mean Absolute Error (MAE)
+mae_lasso <- mae(y_test, y_pred_lasso)
+
+# Calcular AIC (No está directamente disponible para modelos glmnet, así que se usa una aproximación)
+n <- length(y_test)  # Número de observaciones en el conjunto de prueba
+p <- sum(coef(lasso_model, s = best_lambda) != 0)  # Número de predictores seleccionados por LASSO
+aic_lasso <- n * log(mse_lasso) + 2 * p
+
+# Calcular BIC (Usando la misma aproximación)
+bic_lasso <- n * log(mse_lasso) + log(n) * p
+
+# Imprimir las métricas de evaluación
+cat("Explained Variance LASSO:", explained_variance_lasso, "\n")
+cat("Mean Squared Log Error (MSLE) LASSO:", mean_squared_log_error_lasso, "\n")
+cat("R2 LASSO:", r2_lasso, "\n")
+cat("Mean Squared Error (MSE) LASSO:", mse_lasso, "\n")
+cat("Mean Absolute Error (MAE) LASSO:", mae_lasso, "\n")
+cat("AIC LASSO:", aic_lasso, "\n")
+cat("BIC LASSO:", bic_lasso, "\n")
+```
+##Análisis residual
+```{r calculoResiduos}
+# Realizar predicciones con el modelo LASSO
+y_pred_lasso <- predict(lasso_model, newx = as.matrix(X_test), s = best_lambda, type = "response")
+
+# Calcular los residuos
+residuos <- y_test - y_pred_lasso
+# Gráfico de dispersión de residuos
+plot(residuos, type = "p", main = "Gráfico de Dispersión de Residuos LASSO",
+     xlab = "Índice de Observación", ylab = "Residuos")
+abline(h = 0, col = "red")  # Línea horizontal en 0 para referencia
+
+```
+
+```{r lassoHisto}
+# Establecer límites para el eje x excluyendo el dato atípico
+lim_x <- quantile(residuos, c(0.01, 0.99))
+
+# Histograma de los residuos con límites en el eje x
+hist(residuos, breaks = 30, xlim = lim_x, freq = FALSE,
+     main = "Histograma de los Residuos LASSO con Curva Normal",
+     xlab = "Residuos", col = "lightblue")
+
+# Superponer una curva normal
+media_residuos <- mean(residuos)
+sd_residuos <- sd(residuos)
+curve(dnorm(x, mean = media_residuos, sd = sd_residuos), 
+      col = "red", lwd = 2, add = TRUE, xlim = lim_x)
+
+# Añadir leyenda
+legend("topright", legend = c("Densidad Normal", "Residuos LASSO"), 
+       col = c("red", "black"), lty = 1:1, cex = 0.8)
+```
+
+```{r lasso qq}
+# Filtrar los residuos para excluir valores extremos
+lim_qq <- quantile(residuos, c(0.01, 0.99))
+residuos_filtrados <- residuos[residuos > lim_qq[1] & residuos < lim_qq[2]]
+
+# Gráfico Q-Q de los residuos filtrados
+qqnorm(residuos_filtrados, main = "Gráfico Q-Q de los Residuos LASSO (sin atípicos)")
+qqline(residuos_filtrados, col = "red")
+
+```
+```{r lassoShapiro}
+# Prueba de Shapiro-Wilk para normalidad de los residuos
+
+```
+El coeficiente de determinación r^2 de 0.666 indica que el modelo puede explicar aproximadamente el 66.6% de la variabilidad en los datos, lo cual es un rendimiento razonablemente bueno. Sin embargo, una tercera parte de la variabilidad no está siendo capturada por el modelo.
+
+El valor de la prueba de Shapiro-Wilk sugieren fuertemente que los residuos del modelo no siguen una distribución normal. Esta desviación de la normalidad, especialmente con un valor W relativamente bajo, indica que puede haber problemas con la especificación del modelo, como la omisión de variables importantes, o la presencia de valores atípicos que podrían estar distorsionando la distribución de los residuos.
