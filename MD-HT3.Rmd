@@ -207,8 +207,8 @@ salePriceData <- datos$SalePrice
 
 # Creamos una copia del dataframe excluyendo la columna 'Id' y seleccionando solo las columnas numéricas
 datos_numerical_cp <- datos %>%
-  select(-Id) %>%
-  select_if(is.numeric)
+  dplyr::select(-Id) %>%
+  dplyr::select_if(is.numeric)
 
 # Iteramos sobre las columnas del dataframe numérico
 for (col in colnames(datos_numerical_cp)) {
@@ -221,7 +221,7 @@ for (col in colnames(datos_numerical_cp)) {
   corr <- corr_test$estimate
   
   # Verificamos si la correlación es mayor o igual a 0.45
-  if (corr >= 0.45) {
+  if (!is.na(corr) && corr >= 0.45) {
     cat(sprintf("'%s' coeficiente de correlación spearman : %f\n", col, corr))
   }
 }
@@ -279,3 +279,103 @@ datos[, nombres_categoricos] <- lapply(datos[, nombres_categoricos, drop = FALSE
 no_null_counts <- colSums(!is.na(datos))
 print(no_null_counts)
 ```
+
+###Seleccion de las columnas 
+```{r instalacionlibrerias}
+install.packages("ggplot2")
+install.packages("reshape2")
+library(ggplot2)
+library(reshape2)
+```
+
+
+```{r datosColumnas}
+# Definir las columnas seleccionadas basadas en su correlación de Spearman > 0.6
+selected_columns <- c("OverallQual", "YearBuilt", "ExterQual", "BsmtQual", "TotalBsmtSF", 
+                      "GrLivArea", "FullBath", "KitchenQual", "GarageCars", "GarageArea")
+
+# Seleccionar las columnas del dataframe
+selected_predictors <- datos[selected_columns]
+
+# Calcular la matriz de correlación
+predictors_corr <- cor(selected_predictors, use = "complete.obs", method = "pearson")
+
+# Transformar la matriz de correlación para la visualización
+melted_corr <- melt(predictors_corr)
+
+# Crear el mapa de calor, ajustar el tema y añadir los textos de correlación
+ggplot(data = melted_corr, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +  # Dibuja los cuadros del mapa de calor
+  geom_text(aes(label = sprintf("%.2f", value)), size = 3, color = "black") +  # Añade los valores de correlación
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Correlación de Pearson") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 8),  # Reduce el tamaño del texto del eje x
+        axis.text.y = element_text(size = 8)) +  # Reduce el tamaño del texto del eje y
+  labs(x = "", y = "", title = "Mapa de Calor de Correlación") +
+  coord_fixed(ratio = 1 / (length(selected_columns) / 5))  # Ajusta el tamaño de los cuadros
+
+```
+###Seleccion de los mejores datos en la correlacion
+```{r MejoresDatos}
+
+
+mejores_Datos <- datos %>% dplyr::select(OverallQual, YearBuilt,  KitchenQual, GarageArea, FullBath, GrLivArea, GarageCars, X1stFlrSF, FullBath, TotRmsAbvGrd, FireplaceQu, MasVnrArea)
+
+head(mejores_Datos)
+
+```
+
+Estos seran los datos a utilzar en los distintos modelos ya que han sido los que mejor correlación poseen y poseen una buena correlacion de pearson
+
+#Modelado 
+
+###Regresion Lineal
+
+```{r regresion lineal}
+library(caTools)  # Para dividir los datos
+library(MASS)     # Para AIC y BIC si es necesario
+
+y <- datos$SalePrice
+X <- scale(mejores_Datos)
+
+# Convertir la matriz escalada de nuevo a un dataframe
+X_df <- as.data.frame(X)
+
+# Dividir los datos en conjuntos de entrenamiento y prueba
+set.seed(42)  # Para reproducibilidad
+split <- sample.split(y, SplitRatio = 0.8)
+X_train <- X_df[split, ]
+X_test <- X_df[!split, ]
+y_train <- y[split]
+y_test <- y[!split]
+
+# Ajustar el modelo de regresión lineal
+model <- lm(y_train ~ ., data = X_train)
+
+# Realizar predicciones en el conjunto de prueba
+y_pred <- predict(model, newdata = X_test)
+
+# Calcular métricas de evaluación
+explained_variance <- summary(model)$r.squared
+mean_squared_error <- mean((y_test - y_pred)^2)
+r2 <- summary(model)$r.squared
+mean_absolute_error <- mean(abs(y_test - y_pred))
+mse <- mean_squared_error
+aic <- AIC(model)
+bic <- BIC(model)
+
+# Imprimir las métricas de evaluación
+cat("Explained Variance:", explained_variance, "\n")
+cat("Mean Squared Error:", mean_squared_error, "\n")
+cat("R2:", r2, "\n")
+cat("Mean Absolute Error:", mean_absolute_error, "\n")
+cat("Mean Squared Error:", mse, "\n")
+cat("AIC:", aic, "\n")
+cat("BIC:", bic, "\n")
+
+
+```
+
+##Análisis residual
