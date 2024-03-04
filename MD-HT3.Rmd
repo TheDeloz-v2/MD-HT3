@@ -13,6 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r train}
 library(dplyr)
+if (!requireNamespace("Hmisc", quietly = TRUE)) {
+  install.packages("Hmisc")
+}
+library(Hmisc)
 datos  <- read.csv("train.csv")
 ```
 
@@ -177,3 +181,32 @@ datos <- datos %>%
   ))
 
 ```
+
+### Correlación y relación
+``` {r correlacion}
+# Extraemos la columna 'SalePrice' del dataframe
+salePriceData <- datos$SalePrice
+
+# Creamos una copia del dataframe excluyendo la columna 'Id' y seleccionando solo las columnas numéricas
+datos_numerical_cp <- datos %>%
+  select(-Id) %>%
+  select_if(is.numeric)
+
+# Iteramos sobre las columnas del dataframe numérico
+for (col in colnames(datos_numerical_cp)) {
+  colData <- datos_numerical_cp[[col]]
+  
+  # Suprimimos los mensajes de advertencia alrededor de cor.test
+  corr_test <- suppressWarnings(cor.test(salePriceData, colData, method = "spearman"))
+  
+  # Extraemos el coeficiente de correlación de Spearman del resultado del test
+  corr <- corr_test$estimate
+  
+  # Verificamos si la correlación es mayor o igual a 0.45
+  if (corr >= 0.45) {
+    cat(sprintf("'%s' coeficiente de correlación spearman : %f\n", col, corr))
+  }
+}
+```
+
+Se considera unicamente los datos que posean un resultado superior a 0.50 ya que esto nos indica una correlación fuerte. Se utiliza este tipo de relación ya que no poseen una distribución normal
