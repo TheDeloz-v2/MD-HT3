@@ -379,3 +379,66 @@ cat("BIC:", bic, "\n")
 ```
 
 ##Análisis residual
+
+```{r analisisResiduales}
+# Calcular los residuos
+residuos <- y_test - y_pred
+# Gráfico de residuos vs. valores ajustados
+plot(y_pred, residuos,
+     xlab = "Valores Ajustados", ylab = "Residuos",
+     main = "Gráfico de Residuos vs. Valores Ajustados")
+abline(h = 0, col = "red")  # Línea horizontal en 0 para referencia
+
+
+```
+```{r historesiduos}
+# Histograma de los residuos
+# Establecer límites para el eje x excluyendo el dato atípico
+lim_x <- quantile(residuos, c(0.01, 0.99))
+
+# Histograma de los residuos con límites en el eje x
+hist(residuos, breaks = 30, xlim = lim_x, freq = FALSE,
+     main = "Histograma de los Residuos con Curva Normal",
+     xlab = "Residuos", col = "lightblue")
+
+# Calcular la media y la desviación estándar de los residuos
+media_residuos <- mean(residuos)
+sd_residuos <- sd(residuos)
+
+# Superponer una curva normal
+curve(dnorm(x, mean = media_residuos, sd = sd_residuos), 
+      col = "red", lwd = 2, add = TRUE, xlim = lim_x)
+
+# Añadir leyenda
+legend("topright", legend = c("Densidad Normal", "Residuos"), 
+       col = c("red", "black"), lty = 1:1, cex = 0.8)
+
+```
+
+```{r dispersion}
+# Gráfico de dispersión de residuos
+plot(residuos, type = "p", main = "Gráfico de Dispersión de Residuos",
+     xlab = "Índice de Observación", ylab = "Residuos")
+abline(h = 0, col = "red")  # Línea horizontal en 0 para referencia
+
+```
+
+
+```{r qqgrafico}
+# Gráfico Q-Q de los residuos
+# Filtrar los residuos para excluir valores extremos
+lim_qq <- quantile(residuos, c(0.01, 0.99))  # Establecer límites basados en cuantiles
+residuos_filtrados <- residuos[residuos > lim_qq[1] & residuos < lim_qq[2]]
+
+# Gráfico Q-Q de los residuos filtrados
+qqnorm(residuos_filtrados, main = "Gráfico Q-Q de los Residuos (sin atípicos)")
+qqline(residuos_filtrados, col = "red")  # Añadir línea Q-Q
+
+```
+
+```{r shapiroPrueba}
+# Prueba de Shapiro-Wilk para normalidad de los residuos
+shapiro.test(residuos)
+```
+
+Las distintas graficas nos muestran que los residuos siguen una distribucion normal pero al poseer un valor W bajo y un valor p extremadamente bajo sugiere que los residuos de tu modelo no se distribuyen normalmente. Esto puede ser un indicativo de varios problemas potenciales con el modelo y que poseemos algunos valores atípicos distorcionando así la distribución de los residuos
