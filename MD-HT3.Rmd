@@ -253,4 +253,29 @@ boxplot(datos$OverallQual, main = "Boxplot de OverallQual", ylab = "OverallQual"
 Como se puede visualizar poseemos datos atípicos muy alejados en el precio de venta, LotArea y overallQual estas graficas se realizaron ya que son de las variables importantes y por eso se relizaron histogramas y caja y bigotes apra visualizar la cantidad de datos atípicos.
 
 
-###Análisis de Clustering
+###Llenado de data para uso en modelos
+
+
+```{r na}
+
+# Identificar las columnas numéricas
+numeric_features <- sapply(datos, is.numeric)
+
+# Rellenar los valores NAN's con 0 en las columnas numéricas
+datos[, numeric_features] <- lapply(datos[, numeric_features, drop = FALSE], function(x) ifelse(is.na(x), 0, x))
+
+#Identificar los nombres de las columnas categóricas
+nombres_categoricos <- names(datos)[sapply(datos, function(x) !is.numeric(x))]
+
+#Rellenar los valores NAN's con "NA" en las columnas categóricas
+datos[, nombres_categoricos] <- lapply(datos[, nombres_categoricos, drop = FALSE], function(x) ifelse(is.na(x), "NA", x))
+
+#Reemplazar "NA" con 0 en columnas categóricas
+datos[, nombres_categoricos] <- lapply(datos[, nombres_categoricos, drop = FALSE], function(x) replace(x, x == "NA", 0))
+
+```
+
+```{r showData withoutN Na}
+no_null_counts <- colSums(!is.na(datos))
+print(no_null_counts)
+```
