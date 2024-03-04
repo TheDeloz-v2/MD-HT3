@@ -228,3 +228,29 @@ for (col in colnames(datos_numerical_cp)) {
 ```
 
 Se considera unicamente los datos que posean un resultado superior a 0.6 ya que esto nos indica una correlación fuerte. Se utiliza este tipo de relación ya que no poseen una distribución normal como tal.
+
+### 
+
+```{r histograma SalePrice}
+hist(datos$SalePrice, main = "Histograma de SalePrice", xlab = "SalePrice", border = "blue", col = "lightblue")
+#Diagrama caja y bigotes
+boxplot(datos$SalePrice, main = "Boxplot de SalePrice", ylab = "SalePrice", col = "lightblue", border = "blue")
+
+```
+
+```{r histograma LotArea}
+hist(datos$LotArea, main = "Histograma de SalePrice", xlab = "LotArea", border = "blue", col = "lightblue")
+#Diagrama caja y bigotes
+boxplot(datos$LotArea, main = "Boxplot de LotArea", ylab = "LotArea", col = "lightblue", border = "blue")
+```
+
+```{r histograma OverallQual}
+hist(datos$OverallQual, main = "Histograma de SalePrice", xlab = "OverallQual", border = "blue", col = "lightblue")
+#Diagrama caja y bigotes
+boxplot(datos$OverallQual, main = "Boxplot de OverallQual", ylab = "OverallQual", col = "lightblue", border = "blue")
+```
+
+Como se puede visualizar poseemos datos atípicos muy alejados en el precio de venta, LotArea y overallQual estas graficas se realizaron ya que son de las variables importantes y por eso se relizaron histogramas y caja y bigotes apra visualizar la cantidad de datos atípicos.
+
+
+###Análisis de Clustering
