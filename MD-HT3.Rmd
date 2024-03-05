@@ -40,7 +40,7 @@ print(tabla_variables)
 
 
 
-```{r train}
+```{r calificaciones}
 
 # Campos donde se mide por calificaciones:
 #       Ex	Excellent
@@ -184,7 +184,7 @@ datos <- datos %>%
 
 
 ### Verificacion de valores nulos
-``` {r correlacion}
+``` {r nulos}
 
 # Calcula la suma de valores nulos por columna
 nullValues <- sapply(datos, function(x) sum(is.na(x)))
@@ -282,8 +282,7 @@ print(no_null_counts)
 
 ###Seleccion de las columnas 
 ```{r instalacionlibrerias}
-install.packages("ggplot2")
-install.packages("reshape2")
+
 library(ggplot2)
 library(reshape2)
 ```
@@ -381,6 +380,8 @@ cat("BIC:", bic, "\n")
 ##Análisis residual
 
 ```{r analisisResiduales}
+
+residuos <- y_test - y_pred
 # Gráfico de dispersión de residuos
 plot(residuos, type = "p", main = "Gráfico de Dispersión de Residuos",
      xlab = "Índice de Observación", ylab = "Residuos")
@@ -432,8 +433,7 @@ Las distintas graficas nos muestran que los residuos siguen una distribucion nor
 
 ### Modelo Lasso
 ```{r LassoModelLibrarys}
-install.packages("glmnet")
-install.packages("Metrics")
+
 library(glmnet)
 library(Metrics)
 ```
@@ -457,6 +457,9 @@ Los que poseen valores nulos no contribuyen en nada a la variable dependiente pa
 
 ```{r LassoModelComp}
 
+# Realizar predicciones con el modelo LASSO
+y_pred_lasso <- predict(lasso_model, newx = as.matrix(X_test), s = best_lambda, type = "response")
+
 explained_variance_lasso <- cor(y_test, y_pred_lasso)^2
 
 # Asegurarse de que no haya valores negativos
@@ -466,8 +469,7 @@ if(any(y_test <= 0) | any(y_pred_lasso <= 0)){
 
 mean_squared_log_error_lasso <- mean((log(y_pred_lasso + 1) - log(y_test + 1))^2)
 
-# Realizar predicciones con el modelo LASSO
-y_pred_lasso <- predict(lasso_model, newx = as.matrix(X_test), s = best_lambda, type = "response")
+
 
 # Calcular el R2
 r2_lasso <- cor(y_test, y_pred_lasso)^2
@@ -665,3 +667,167 @@ ggplot(residuals_df, aes(sample = residuals)) +
 
 
 ```
+
+
+
+
+
+
+## Modelo de Elastic Net
+
+```{r modelo Elastic Net}
+
+library(Metrics)
+library(glmnet)
+library(caTools)  # Para dividir los datos
+library(ggplot2)
+library(ggpubr)
+
+# Preparación de los datos
+y <- datos$SalePrice
+X <- scale(mejores_Datos)
+
+# Convertir la matriz escalada de nuevo a un dataframe
+X_df <- as.data.frame(X)
+
+# Dividir los datos en conjuntos de entrenamiento y prueba
+set.seed(42)  # Para reproducibilidad
+split <- sample.split(y, SplitRatio = 0.8)
+X_train <- X_df[split, ]
+X_test <- X_df[!split, ]
+y_train <- y[split]
+y_test <- y[!split]
+
+# Ajuste del modelo Elastic Net con validación cruzada
+x <- as.matrix(X_train)  # Convertir a matriz
+y <- y_train
+cv_elasticnet_model <- cv.glmnet(x, y, alpha=0.5)  # alpha ajustado para Elastic Net
+
+# Lambda óptimo basado en la validación cruzada
+lambda_optimo <- cv_elasticnet_model$lambda.min
+
+# Predicciones con lambda óptimo
+x_test <- as.matrix(X_test)  # Convertir a matriz
+y_pred_elasticnet <- predict(cv_elasticnet_model, s=lambda_optimo, newx=x_test)
+
+# Evaluación
+explained_variance_elasticnet <- 1 - var(y_test - y_pred_elasticnet) / var(y_test)
+mse_elasticnet <- mse(y_test, y_pred_elasticnet)
+
+# Calcula manualmente el R^2
+ss_res <- sum((y_test - y_pred_elasticnet)^2)  # Suma de cuadrados de los residuos
+ss_tot <- sum((y_test - mean(y_test))^2)  # Suma total de cuadrados
+r2_elasticnet <- 1 - (ss_res / ss_tot)
+
+mae_elasticnet <- mae(y_test, y_pred_elasticnet)
+
+# Imprimir métricas de evaluación
+cat("Lambda óptimo:", lambda_optimo, "\n")
+cat("Explained Variance:", explained_variance_elasticnet, "\n")
+cat("Mean Squared Error:", mse_elasticnet, "\n")
+cat("R2:", r2_elasticnet, "\n")
+cat("Mean Absolute Error:", mae_elasticnet, "\n")
+
+
+```
+
+```{r modelo Elastic Net residuales 1}
+
+## Análisis de Residuales para el Modelo Elastic Net
+
+# Calcula los residuales
+residuals_elasticnet <- y_test - y_pred_elasticnet
+
+# 1. Residuales vs Predicciones
+ggplot() +
+  geom_point(aes(x=y_pred_elasticnet, y=residuals_elasticnet), color='coral') +
+  geom_hline(yintercept=0, color='blue') +
+  ggtitle('Residuales vs Predicciones') +
+  xlab('Predicciones') +
+  ylab('Residuales')
+
+```
+
+
+
+```{r modelo Elastic Net residuales 2}
+
+# 2. Distribución de Residuales
+ggplot() +
+  geom_histogram(aes(x=residuals_elasticnet), bins=30, fill='skyblue', color='black') +
+  geom_density(aes(x=residuals_elasticnet, y=..density..), color='blue') +
+  ggtitle('Distribución de Residuales') +
+  xlab('Residuales') +
+  ylab('Frecuencia')
+
+```
+
+
+```{r modelo Elastic Net residuales 3}
+
+# 3. Residuales vs Valores Reales
+ggplot() +
+  geom_point(aes(x=y_test, y=residuals_elasticnet), color='coral') +
+  ggtitle('Residuales vs Valores Reales') +
+  xlab('Valores Reales') +
+  ylab('Residuales')
+
+```
+
+
+
+```{r modelo Elastic Net residuales 4}
+
+# 4. QQ Plot de Residuales utilizando ggplot2
+library(ggplot2)
+
+# Asegurarse de que los residuales están en el formato correcto
+residuals_elasticnet <- as.numeric(residuals_elasticnet)
+
+# Crear un dataframe para los residuales
+residuals_df_elasticnet <- data.frame(residuals = residuals_elasticnet)
+
+# QQ Plot
+ggplot(residuals_df_elasticnet, aes(sample = residuals)) +
+  stat_qq() +
+  stat_qq_line(color = "steelblue") +
+  ggtitle("QQ Plot de Residuales") +
+  xlab("Cuantiles Teóricos") +
+  ylab("Cuantiles de Residuales")
+
+
+```
+
+
+```{r comparacion de modelos}
+
+# Asumiendo que ya has calculado las métricas para cada modelo en R
+
+models <- c('Linear Regression', 'Lasso', 'Ridge', 'ElasticNet')
+
+# Reemplaza las variables de las métricas con los valores calculados en R para cada modelo
+explained_variance <- c(explained_variance, explained_variance_lasso, explained_variance_ridge, explained_variance_elasticnet)
+mean_squared_log_error <- c(mse, mse_lasso, mse_ridge, mse_elasticnet)  # Asegúrate de calcular o definir estas métricas
+r2 <- c(r2, r2_lasso, r2_ridge, r2_elasticnet)
+mse <- c(mse, mse_lasso, mse_ridge, mse_elasticnet)
+
+
+# Imprimir las métricas para cada modelo
+for (i in 1:length(models)) {
+  cat("Modelo:", models[i], "\n")
+  
+  # Imprime cada métrica. Asegúrate de reemplazar 'valor_metrica_x' con tus valores reales
+  cat("Explained Variance:", explained_variance[i], "\n")
+  cat("Mean Squared Log Error:", mean_squared_log_error[i], "\n")
+  cat("R2:",r2[i], "\n")
+  cat("Mean Squared Error:", mse[i], "\n")
+  
+  cat("\n")  # Espacio extra para separar los modelos
+}
+
+
+```
+
+
+
+El modelo de Regresión Lineal es el más efectivo entre los cuatro modelos presentados. Esto se debe a que tiene el valor más alto de Varianza Explicada y R2R2, ambos a 0.8114168, indicando que es capaz de explicar aproximadamente el 81% de la variabilidad en los datos objetivo. Aunque su Error Cuadrático Medio es más alto en comparación con Lasso, las métricas de Varianza Explicada y R2R2 son más críticas para evaluar la capacidad del modelo para capturar la variación en los datos, haciéndolo preferible en este contexto.
